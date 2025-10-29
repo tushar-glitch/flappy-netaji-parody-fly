@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,7 @@ import Signin from "./pages/Signin";
 import NotFound from "./pages/NotFound";
 import SuggestAvatar from "./pages/SuggestAvatar";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -19,6 +21,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <Analytics />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/game" element={<Game />} />

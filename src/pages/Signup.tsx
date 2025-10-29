@@ -142,11 +142,11 @@ const Signup = () => {
                     />
                   ))}
                 </div>
-                <div className="text-center mt-4">
+                {/* <div className="text-center mt-4">
                   <Link to="/suggest-avatar" className="text-sm text-muted-foreground hover:text-primary">
                     Want to suggest an avatar? Click here!
                   </Link>
-                </div>
+                </div> */}
               </div>
 
               <Button

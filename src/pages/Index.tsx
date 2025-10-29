@@ -1,14 +1,24 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import heroBg from "@/assets/hero-bg.jpg";
+import heroBg1 from "@/assets/home-1.jpg";
+import heroBg2 from "@/assets/home-2.jpg";
+import heroBg3 from "@/assets/home-3.jpg";
+import heroBg4 from "@/assets/home-4.jpg";
+import heroBg5 from "@/assets/home-5.webp";
+
+const heroBgs = [heroBg1, heroBg2, heroBg3, heroBg4, heroBg5];
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [heroBg, setHeroBg] = useState("");
 
   useEffect(() => {
+    const randomBg = heroBgs[Math.floor(Math.random() * heroBgs.length)];
+    setHeroBg(randomBg);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
     });
@@ -25,7 +35,7 @@ const Index = () => {
       {/* Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroBg})` }}
+        style={{ backgroundImage: `url(${heroBg})`, backgroundSize: 'cover' }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-background"></div>
       </div>

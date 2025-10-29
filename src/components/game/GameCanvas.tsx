@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import playerAvatar from "@/assets/player-avatar.png";
-import gameBg from "@/assets/game-bg.jpg";
-import obstacle1 from "@/assets/obstacle-1.png";
-import obstacle2 from "@/assets/obstacle-2.png";
+import gameBg from "@/assets/game-bg.webp";
+import obstacle1 from "@/assets/obstacle-1.jpg";
+import obstacle2 from "@/assets/obstacle-2.jpg";
 import { toast } from "sonner";
 
 interface GameCanvasProps {
@@ -16,10 +16,19 @@ interface Bird {
   velocity: number;
 }
 
-interface Pipe {
+interface PipePart {
   x: number;
-  gapY: number;
+  y: number;
+  width: number;
+  height: number;
   passed: boolean;
+  obstacleType: number;
+  tilt: number;
+}
+
+interface PipePair {
+  top: PipePart;
+  bottom: PipePart;
 }
 
 const MEME_TEXTS = ["Modiji OP! 🔥", "Kya baat hai! 💪", "Challl be! 😎", "Jai Hind! 🇮🇳"];
@@ -29,7 +38,7 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
   const [gameStarted, setGameStarted] = useState(false);
   const gameStateRef = useRef({
     bird: { x: 100, y: 300, velocity: 0 } as Bird,
-    pipes: [] as Pipe[],
+    pipes: [] as PipePair[],
     score: 0,
     gameOver: false,
     frame: 0,
@@ -44,10 +53,10 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
   // Game constants
   const GRAVITY = 0.4;
   const JUMP_STRENGTH = -8;
-  const BIRD_SIZE = 50;
+  const BIRD_SIZE = 70;
   const PIPE_WIDTH = 80;
   const PIPE_GAP = 200;
-  const PIPE_SPEED = 3;
+  const PIPE_SPEED = 5;
 
   useEffect(() => {
     const img = new Image();
@@ -71,7 +80,8 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
     bgMusicRef.current.loop = true;
     bgMusicRef.current.volume = 0.3;
 
-    gameOverSoundRef.current = new Audio("/game-over.mp3");
+    let num = Math.floor((Math.random()*3)+1)
+    gameOverSoundRef.current = new Audio(`/game-over-${num}.mp3`);
     gameOverSoundRef.current.volume = 0.5;
 
     return () => {
@@ -98,7 +108,7 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
     const handleInput = () => {
       if (!gameStarted) {
         setGameStarted(true);
-        gameStateRef.current.pipes = [{ x: canvas.width, gapY: 250, passed: false }];
+        gameStateRef.current.pipes = []; // Start with no pipes
         // Start background music
         bgMusicRef.current?.play().catch(e => console.log("Audio play failed:", e));
       }
@@ -148,18 +158,42 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
         state.bird.y += state.bird.velocity;
 
         // Spawn new pipes
-        if (state.frame % 120 === 0) {
-          const gapY = Math.random() * (canvas.height - PIPE_GAP - 100) + 50;
-          state.pipes.push({ x: canvas.width, gapY, passed: false });
+        if (state.frame % 75 === 0) {
+          const gapY = Math.random() * (canvas.height - PIPE_GAP - 200) + 100;
+          const tilt = (Math.random() - 0.5) * 0.5; // Random tilt between -0.25 and 0.25 radians
+
+          const topPipe: PipePart = {
+            x: canvas.width,
+            y: 0,
+            width: PIPE_WIDTH,
+            height: gapY,
+            passed: false,
+            obstacleType: Math.random() < 0.5 ? 1 : 2,
+            tilt: tilt,
+          };
+
+          const bottomPipe: PipePart = {
+            x: canvas.width,
+            y: gapY + PIPE_GAP,
+            width: PIPE_WIDTH,
+            height: canvas.height - gapY - PIPE_GAP,
+            passed: false,
+            obstacleType: Math.random() < 0.5 ? 1 : 2,
+            tilt: tilt,
+          };
+
+          state.pipes.push({ top: topPipe, bottom: bottomPipe });
         }
 
         // Update pipes
-        state.pipes.forEach((pipe) => {
-          pipe.x -= PIPE_SPEED;
+        state.pipes.forEach((pipePair) => {
+          pipePair.top.x -= PIPE_SPEED;
+          pipePair.bottom.x -= PIPE_SPEED;
 
           // Check if bird passed pipe
-          if (!pipe.passed && pipe.x + PIPE_WIDTH < state.bird.x) {
-            pipe.passed = true;
+          if (!pipePair.top.passed && pipePair.top.x + pipePair.top.width < state.bird.x) {
+            pipePair.top.passed = true;
+            pipePair.bottom.passed = true; // Mark both as passed
             state.score++;
             onScoreUpdate(state.score);
 
@@ -172,64 +206,87 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
         });
 
         // Remove off-screen pipes
-        state.pipes = state.pipes.filter((pipe) => pipe.x > -PIPE_WIDTH);
+        state.pipes = state.pipes.filter(pipePair => pipePair.top.x + PIPE_WIDTH > 0 && pipePair.bottom.x + PIPE_WIDTH > 0);
 
-        // Collision detection
-        const birdLeft = state.bird.x;
-        const birdRight = state.bird.x + BIRD_SIZE;
-        const birdTop = state.bird.y;
-        const birdBottom = state.bird.y + BIRD_SIZE;
+        // Collision detection & Drawing
+        const birdRect = { x: state.bird.x, y: state.bird.y, width: BIRD_SIZE, height: BIRD_SIZE };
 
         // Check ground/ceiling collision
-        if (birdTop <= 0 || birdBottom >= canvas.height) {
+        if (birdRect.y <= 0 || birdRect.y + birdRect.height >= canvas.height) {
           state.gameOver = true;
           bgMusicRef.current?.pause();
           gameOverSoundRef.current?.play().catch(e => console.log("Sound play failed:", e));
           onGameOver(state.score);
         }
 
-        // Check pipe collision
-        state.pipes.forEach((pipe) => {
-          const pipeLeft = pipe.x;
-          const pipeRight = pipe.x + PIPE_WIDTH;
+        // Pipe collision and drawing
+        state.pipes.forEach((pipePair) => {
+          const { top, bottom } = pipePair;
 
-          if (birdRight > pipeLeft && birdLeft < pipeRight) {
-            if (birdTop < pipe.gapY || birdBottom > pipe.gapY + PIPE_GAP) {
-              state.gameOver = true;
-              bgMusicRef.current?.pause();
-              gameOverSoundRef.current?.play().catch(e => console.log("Sound play failed:", e));
-              onGameOver(state.score);
-            }
+          // --- Helper function for rotated rectangle collision ---
+          const checkCollision = (pipe: PipePart) => {
+            const birdCircle = { x: state.bird.x + BIRD_SIZE / 2, y: state.bird.y + BIRD_SIZE / 2, radius: BIRD_SIZE / 2 };
+
+            // Transform bird's center to the pipe's coordinate system
+            const translatedBirdX = birdCircle.x - (pipe.x + pipe.width / 2);
+            const translatedBirdY = birdCircle.y - (pipe.y + pipe.height / 2);
+
+            const rotatedBirdX = translatedBirdX * Math.cos(-pipe.tilt) - translatedBirdY * Math.sin(-pipe.tilt);
+            const rotatedBirdY = translatedBirdX * Math.sin(-pipe.tilt) + translatedBirdY * Math.cos(-pipe.tilt);
+
+            // Find the closest point on the pipe's rectangle to the bird's center
+            const closestX = Math.max(-pipe.width / 2, Math.min(rotatedBirdX, pipe.width / 2));
+            const closestY = Math.max(-pipe.height / 2, Math.min(rotatedBirdY, pipe.height / 2));
+
+            // Calculate the distance between the closest point and the bird's center
+            const distanceX = rotatedBirdX - closestX;
+            const distanceY = rotatedBirdY - closestY;
+            const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+
+            return distanceSquared < (birdCircle.radius * birdCircle.radius);
+          };
+
+          if (checkCollision(top) || checkCollision(bottom)) {
+            state.gameOver = true;
+            bgMusicRef.current?.pause();
+            gameOverSoundRef.current?.play().catch(e => console.log("Sound play failed:", e));
+            onGameOver(state.score);
           }
-        });
 
-        // Draw pipes using obstacle images
-        state.pipes.forEach((pipe, index) => {
-          const obstacleImg = index % 2 === 0 ? obstacle1Ref.current : obstacle2Ref.current;
-          
-          if (obstacleImg?.complete) {
-            // Top obstacle (flipped upside down)
+          // --- Draw Pipes ---
+          const drawPipe = (pipe: PipePart, isTop: boolean) => {
+            const obstacleImg = pipe.obstacleType === 1 ? obstacle1Ref.current : obstacle2Ref.current;
+            if (!obstacleImg?.complete) {
+              // Fallback to colored rectangles
+              ctx.fillStyle = "#228B22";
+              ctx.save();
+              ctx.translate(pipe.x + pipe.width / 2, pipe.y + pipe.height / 2);
+              ctx.rotate(pipe.tilt);
+              ctx.fillRect(-pipe.width / 2, -pipe.height / 2, pipe.width, pipe.height);
+              ctx.restore();
+              return;
+            }
+
             ctx.save();
-            ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.gapY / 2);
-            ctx.scale(1, -1);
-            ctx.drawImage(obstacleImg, -PIPE_WIDTH / 2, -pipe.gapY / 2, PIPE_WIDTH, pipe.gapY);
-            ctx.restore();
+            ctx.translate(pipe.x + pipe.width / 2, pipe.y + pipe.height / 2);
+            ctx.rotate(pipe.tilt);
+            
+            if (isTop) {
+                ctx.scale(1, -1); // Flip top pipe
+            }
 
-            // Bottom obstacle
-            const bottomHeight = canvas.height - pipe.gapY - PIPE_GAP;
             ctx.drawImage(
               obstacleImg,
-              pipe.x,
-              pipe.gapY + PIPE_GAP,
-              PIPE_WIDTH,
-              bottomHeight
+              -pipe.width / 2,
+              -pipe.height / 2,
+              pipe.width,
+              pipe.height
             );
-          } else {
-            // Fallback to colored rectangles
-            ctx.fillStyle = "#228B22";
-            ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.gapY);
-            ctx.fillRect(pipe.x, pipe.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - pipe.gapY - PIPE_GAP);
-          }
+            ctx.restore();
+          };
+
+          drawPipe(top, true);
+          drawPipe(bottom, false);
         });
 
         // Draw bird (player avatar)

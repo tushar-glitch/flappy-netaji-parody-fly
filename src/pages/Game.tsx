@@ -13,6 +13,7 @@ const Game = () => {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [gameId, setGameId] = useState(0);
 
   useEffect(() => {
     // Load high score from localStorage
@@ -25,6 +26,19 @@ const Game = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    const audioContext = new AudioContext();
+    if (audioContext.state === "suspended") {
+      toast.info("Click on the screen to enable audio.", {
+        duration: 5000,
+      });
+    }
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleGameOver = async (finalScore: number) => {
@@ -56,6 +70,7 @@ const Game = () => {
   const handleRestart = () => {
     setGameOver(false);
     setScore(0);
+    setGameId(prevId => prevId + 1);
   };
 
   return (
@@ -71,7 +86,7 @@ const Game = () => {
           <Home className="h-4 w-4" />
         </Button>
         
-        <div className="flex gap-8">
+        <div className="flex gap-8 items-center">
           <div className="text-center bg-background/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-card">
             <p className="text-xs text-muted-foreground">Score</p>
             <p className="text-2xl font-bold text-primary">{score}</p>
@@ -80,10 +95,20 @@ const Game = () => {
             <p className="text-xs text-muted-foreground">High Score</p>
             <p className="text-2xl font-bold text-secondary">{highScore}</p>
           </div>
+          {isLoggedIn && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => supabase.auth.signOut()}
+              className="shadow-card bg-background/80 backdrop-blur-sm"
+            >
+              Sign Out
+            </Button>
+          )}
         </div>
       </div>
 
-      <GameCanvas onGameOver={handleGameOver} onScoreUpdate={setScore} />
+      <GameCanvas key={gameId} onGameOver={handleGameOver} onScoreUpdate={setScore} />
 
       {gameOver && (
         <GameOver
@@ -93,6 +118,7 @@ const Game = () => {
           onRestart={handleRestart}
           onHome={() => navigate("/")}
           onSignup={() => navigate("/signup")}
+          onSignin={() => navigate("/signin")}
         />
       )}
     </div>

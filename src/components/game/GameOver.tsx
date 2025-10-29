@@ -9,9 +9,10 @@ interface GameOverProps {
   onRestart: () => void;
   onHome: () => void;
   onSignup: () => void;
+  onSignin: () => void;
 }
 
-const GameOver = ({ score, highScore, isLoggedIn, onRestart, onHome, onSignup }: GameOverProps) => {
+const GameOver = ({ score, highScore, isLoggedIn, onRestart, onHome, onSignup, onSignin }: GameOverProps) => {
   const isNewHighScore = score === highScore && score > 0;
 
   return (
@@ -52,14 +53,24 @@ const GameOver = ({ score, highScore, isLoggedIn, onRestart, onHome, onSignup }:
             </Button>
 
             {!isLoggedIn && (
-              <Button
-                variant="secondary"
-                className="w-full text-lg py-6"
-                onClick={onSignup}
-              >
-                <UserPlus className="mr-2 h-5 w-5" />
-                Sign Up for Leaderboard
-              </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="secondary"
+                  className="w-full text-lg py-6"
+                  onClick={onSignup}
+                >
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  Sign Up
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full text-lg py-6"
+                  onClick={onSignin}
+                >
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  Sign In
+                </Button>
+              </div>
             )}
 
             <Button

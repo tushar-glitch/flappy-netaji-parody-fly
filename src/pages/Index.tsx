@@ -60,16 +60,34 @@ const Index = () => {
               🏆 Leaderboard
             </Button>
 
-            {!isLoggedIn && (
-              <Button
-                variant="outline"
-                size="lg"
-                className="text-lg px-8 py-6 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                onClick={() => navigate("/signup")}
-              >
-                Sign Up to Rank
-              </Button>
-            )}
+            <div className="flex gap-4">
+              {!isLoggedIn ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    onClick={() => navigate("/signin")}
+                  >
+                    Sign In
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => navigate("/signup")}
+                  >
+                    Sign Up
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  onClick={() => supabase.auth.signOut()}
+                >
+                  Sign Out
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Meme Text */}

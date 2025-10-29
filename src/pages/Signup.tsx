@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,14 +9,7 @@ import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import AvatarCard from "@/components/ui/AvatarCard";
 
-const AVATARS = [
-  { id: "super-netaji", name: "Super Netaji", emoji: "🦸" },
-  { id: "analyst-guy", name: "Analyst Guy", emoji: "🤓" },
-  { id: "confused-rival", name: "Confused Rival", emoji: "😵" },
-  { id: "speech-guy", name: "Speech Guy", emoji: "🎤" },
-  { id: "muffler-man", name: "Muffler Man", emoji: "🧣" },
-  { id: "rally-master", name: "Rally Master", emoji: "📣" },
-];
+import { AVATARS } from "@/lib/avatars";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -148,6 +141,11 @@ const Signup = () => {
                       onClick={() => setSelectedAvatar(avatar.id)}
                     />
                   ))}
+                </div>
+                <div className="text-center mt-4">
+                  <Link to="/suggest-avatar" className="text-sm text-muted-foreground hover:text-primary">
+                    Want to suggest an avatar? Click here!
+                  </Link>
                 </div>
               </div>
 

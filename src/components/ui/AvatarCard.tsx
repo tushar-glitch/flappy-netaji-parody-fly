@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 interface Avatar {
   id: string;
   name: string;
-  emoji: string;
+  image: string;
 }
 
 interface AvatarCardProps {
@@ -21,7 +21,7 @@ const AvatarCard = ({ avatar, isSelected, onClick }: AvatarCardProps) => {
       onClick={onClick}
     >
       <div className="p-4 text-center space-y-2">
-        <div className="text-5xl">{avatar.emoji}</div>
+        <img src={avatar.image} alt={avatar.name} className="w-24 h-24 mx-auto rounded-full object-cover" />
         <p className="text-sm font-medium">{avatar.name}</p>
       </div>
     </Card>

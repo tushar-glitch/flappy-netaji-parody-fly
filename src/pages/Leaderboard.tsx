@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Trophy, Medal } from "lucide-react";
 import { toast } from "sonner";
+import { getAvatarImage } from "@/lib/avatars";
 
 interface LeaderboardEntry {
   username: string;
@@ -110,7 +111,7 @@ const Leaderboard = () => {
                     </div>
 
                     {/* Avatar */}
-                    <div className="text-4xl">{entry.avatar || "🦸"}</div>
+                    <img src={getAvatarImage(entry.avatar)} alt={entry.username} className="w-12 h-12 rounded-full object-cover" />
 
                     {/* Username */}
                     <div className="flex-1">

@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import playerAvatar from "@/assets/player-avatar.png";
+import gameBg from "@/assets/game-bg.jpg";
+import obstacle1 from "@/assets/obstacle-1.png";
+import obstacle2 from "@/assets/obstacle-2.png";
 import { toast } from "sonner";
 
 interface GameCanvasProps {
@@ -32,6 +35,11 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
     frame: 0,
   });
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const bgImageRef = useRef<HTMLImageElement | null>(null);
+  const obstacle1Ref = useRef<HTMLImageElement | null>(null);
+  const obstacle2Ref = useRef<HTMLImageElement | null>(null);
+  const bgMusicRef = useRef<HTMLAudioElement | null>(null);
+  const gameOverSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // Game constants
   const GRAVITY = 0.4;
@@ -45,6 +53,31 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
     const img = new Image();
     img.src = playerAvatar;
     imageRef.current = img;
+
+    const bgImg = new Image();
+    bgImg.src = gameBg;
+    bgImageRef.current = bgImg;
+
+    const obs1 = new Image();
+    obs1.src = obstacle1;
+    obstacle1Ref.current = obs1;
+
+    const obs2 = new Image();
+    obs2.src = obstacle2;
+    obstacle2Ref.current = obs2;
+
+    // Initialize audio
+    bgMusicRef.current = new Audio("/game-music.mp3");
+    bgMusicRef.current.loop = true;
+    bgMusicRef.current.volume = 0.3;
+
+    gameOverSoundRef.current = new Audio("/game-over.mp3");
+    gameOverSoundRef.current.volume = 0.5;
+
+    return () => {
+      bgMusicRef.current?.pause();
+      gameOverSoundRef.current?.pause();
+    };
   }, []);
 
   useEffect(() => {
@@ -54,13 +87,10 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas size
+    // Set canvas size to fullscreen
     const resizeCanvas = () => {
-      const container = canvas.parentElement;
-      if (container) {
-        canvas.width = Math.min(800, container.clientWidth);
-        canvas.height = 600;
-      }
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     };
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
@@ -69,6 +99,8 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
       if (!gameStarted) {
         setGameStarted(true);
         gameStateRef.current.pipes = [{ x: canvas.width, gapY: 250, passed: false }];
+        // Start background music
+        bgMusicRef.current?.play().catch(e => console.log("Audio play failed:", e));
       }
       if (!gameStateRef.current.gameOver) {
         gameStateRef.current.bird.velocity = JUMP_STRENGTH;
@@ -93,9 +125,14 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
 
       const state = gameStateRef.current;
 
-      // Clear canvas
-      ctx.fillStyle = "#87CEEB";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Draw background image
+      if (bgImageRef.current?.complete) {
+        ctx.drawImage(bgImageRef.current, 0, 0, canvas.width, canvas.height);
+      } else {
+        // Fallback color
+        ctx.fillStyle = "#87CEEB";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
       if (!gameStarted) {
         // Draw start screen
@@ -146,6 +183,8 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
         // Check ground/ceiling collision
         if (birdTop <= 0 || birdBottom >= canvas.height) {
           state.gameOver = true;
+          bgMusicRef.current?.pause();
+          gameOverSoundRef.current?.play().catch(e => console.log("Sound play failed:", e));
           onGameOver(state.score);
         }
 
@@ -157,29 +196,40 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
           if (birdRight > pipeLeft && birdLeft < pipeRight) {
             if (birdTop < pipe.gapY || birdBottom > pipe.gapY + PIPE_GAP) {
               state.gameOver = true;
+              bgMusicRef.current?.pause();
+              gameOverSoundRef.current?.play().catch(e => console.log("Sound play failed:", e));
               onGameOver(state.score);
             }
           }
         });
 
-        // Draw pipes (as cartoon politicians)
-        ctx.fillStyle = "#228B22";
-        state.pipes.forEach((pipe) => {
-          // Top pipe
-          ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.gapY);
-          ctx.strokeStyle = "#1a6b1a";
-          ctx.lineWidth = 3;
-          ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, pipe.gapY);
+        // Draw pipes using obstacle images
+        state.pipes.forEach((pipe, index) => {
+          const obstacleImg = index % 2 === 0 ? obstacle1Ref.current : obstacle2Ref.current;
+          
+          if (obstacleImg?.complete) {
+            // Top obstacle (flipped upside down)
+            ctx.save();
+            ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.gapY / 2);
+            ctx.scale(1, -1);
+            ctx.drawImage(obstacleImg, -PIPE_WIDTH / 2, -pipe.gapY / 2, PIPE_WIDTH, pipe.gapY);
+            ctx.restore();
 
-          // Bottom pipe
-          ctx.fillRect(pipe.x, pipe.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - pipe.gapY - PIPE_GAP);
-          ctx.strokeRect(pipe.x, pipe.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - pipe.gapY - PIPE_GAP);
-
-          // Add emoji faces on pipes
-          ctx.font = "40px Arial";
-          ctx.textAlign = "center";
-          ctx.fillText("🤓", pipe.x + PIPE_WIDTH / 2, pipe.gapY - 20);
-          ctx.fillText("😵", pipe.x + PIPE_WIDTH / 2, pipe.gapY + PIPE_GAP + 40);
+            // Bottom obstacle
+            const bottomHeight = canvas.height - pipe.gapY - PIPE_GAP;
+            ctx.drawImage(
+              obstacleImg,
+              pipe.x,
+              pipe.gapY + PIPE_GAP,
+              PIPE_WIDTH,
+              bottomHeight
+            );
+          } else {
+            // Fallback to colored rectangles
+            ctx.fillStyle = "#228B22";
+            ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.gapY);
+            ctx.fillRect(pipe.x, pipe.gapY + PIPE_GAP, PIPE_WIDTH, canvas.height - pipe.gapY - PIPE_GAP);
+          }
         });
 
         // Draw bird (player avatar)
@@ -213,12 +263,10 @@ const GameCanvas = ({ onGameOver, onScoreUpdate }: GameCanvasProps) => {
   }, [gameStarted, onGameOver, onScoreUpdate]);
 
   return (
-    <div className="w-full rounded-lg overflow-hidden shadow-card border-4 border-primary">
-      <canvas
-        ref={canvasRef}
-        className="w-full h-auto bg-accent/10 cursor-pointer"
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 w-full h-full cursor-pointer"
+    />
   );
 };
 

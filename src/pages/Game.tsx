@@ -59,43 +59,42 @@ const Game = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-accent/10 to-background flex flex-col items-center justify-center p-4">
-      <div className="absolute top-4 left-4">
+    <div className="relative w-full h-screen overflow-hidden">
+      {/* Score Display - Floating on top */}
+      <div className="absolute top-4 left-0 right-0 z-10 flex justify-between items-center px-8">
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate("/")}
-          className="shadow-card"
+          className="shadow-card bg-background/80 backdrop-blur-sm"
         >
           <Home className="h-4 w-4" />
         </Button>
-      </div>
-
-      <div className="w-full max-w-2xl">
-        <div className="mb-4 flex justify-between items-center">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Score</p>
-            <p className="text-3xl font-bold text-primary">{score}</p>
+        
+        <div className="flex gap-8">
+          <div className="text-center bg-background/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-card">
+            <p className="text-xs text-muted-foreground">Score</p>
+            <p className="text-2xl font-bold text-primary">{score}</p>
           </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">High Score</p>
-            <p className="text-3xl font-bold text-secondary">{highScore}</p>
+          <div className="text-center bg-background/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-card">
+            <p className="text-xs text-muted-foreground">High Score</p>
+            <p className="text-2xl font-bold text-secondary">{highScore}</p>
           </div>
         </div>
-
-        <GameCanvas onGameOver={handleGameOver} onScoreUpdate={setScore} />
-
-        {gameOver && (
-          <GameOver
-            score={score}
-            highScore={highScore}
-            isLoggedIn={isLoggedIn}
-            onRestart={handleRestart}
-            onHome={() => navigate("/")}
-            onSignup={() => navigate("/signup")}
-          />
-        )}
       </div>
+
+      <GameCanvas onGameOver={handleGameOver} onScoreUpdate={setScore} />
+
+      {gameOver && (
+        <GameOver
+          score={score}
+          highScore={highScore}
+          isLoggedIn={isLoggedIn}
+          onRestart={handleRestart}
+          onHome={() => navigate("/")}
+          onSignup={() => navigate("/signup")}
+        />
+      )}
     </div>
   );
 };
